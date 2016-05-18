@@ -99,7 +99,7 @@ def print_results(results):
 
     # For each platform
     for platform in platforms:
-        ansible_versions = sorted(results[platform].keys())
+        ansible_versions = sorted(results[platform].keys(), key=ansible_version_weight)
         line = platform.ljust(table_padding)
 
         # For each ansible version
