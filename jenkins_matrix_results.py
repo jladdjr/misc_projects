@@ -30,6 +30,20 @@ result_count = 0
 results = dict()
 table_padding = 23 
 
+def ansible_version_weight(version):
+    '''Hack to set order of columns'''
+    weight = {'devel': 0, 'stable-2.1': 1, 'stable-1.9': 2}
+    return weight[version]
+
+def platform_weight(platform):
+    '''Hack to set order of platforms'''
+    weight = {'rhel-6.7-x86_64': 0,        'rhel-7.2-x86_64': 1,
+              'centos-6.latest-x86_64': 2, 'centos-7.latest-x86_64': 3,
+              'ubuntu-12.04-x86_64': 4,    'ubuntu-14.04-x86_64': 5,
+              'ol-6.7-x86_64': 6,          'ol-7.2-x86_64': 7}
+    return weight[platform]
+
+
 def add_result(job_description):
     '''Use description to add results for a given configuration. Returns True if new result was added.'''
 
@@ -60,8 +74,8 @@ def add_result(job_description):
 
 def print_results(results):
     '''Print results for all configurations'''
-    platforms = sorted(results.keys())
-    ansible_versions = sorted(results[platforms[0]].keys())
+    platforms = sorted(results.keys(), key=platform_weight)
+    ansible_versions = sorted(results[platforms[0]].keys(), key=ansible_version_weight)
 
     header = "".ljust(table_padding)
     for version in ansible_versions:
