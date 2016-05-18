@@ -11,6 +11,21 @@ Update jenkins_url, username, and api_key below.
 - To get your api key, open Jenkins, click on your username,
   click on Configure. Locate API Token section. Find / generate
   key here.
+
+Script's approach to collecting results:
+- Get list of most recent completed builds
+- For each build, get a list of all matrix configurations that ran in the build
+- For each run, add the build description to a matrix of results *unless*
+  a set of results for that particular configuration has already been recorded
+- Continue collecting results until either 1) all configurations are accounted for or
+  2) the number of runs reviewed is greater than double the number of matrix configurations
+     (this is just a heuristic to try to give the job a stopping point in case it can't
+      find all results)
+
+Known limitations:
+- If results for a build are missing, output isn't correct
+- Script collects results for last run of a configuration even if that run
+  happened over a day ago.
 '''
 
 import sys
