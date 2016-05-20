@@ -6,7 +6,7 @@ Uses jenkinsapi to query jenkins results for matrix configuration job.
 Usage:
     python jenkins_matrix_results.py
 
-Update jenkins_url, username, and api_key below. 
+Update jenkins_url, username, and api_key below.
 - Username is your E-mail address (listed on user page)
 - To get your api key, open Jenkins, click on your username,
   click on Configure. Locate API Token section. Find / generate
@@ -24,18 +24,19 @@ Script's approach to collecting results:
 
 Known limitations:
 - If results for a build are missing, output isn't correct
-- Script collects results for last run of a configuration even if that run
-  happened over a day ago.
 '''
 
 import sys
 import re
+from datetime import datetime
+from pytz import timezone
+
 from jenkinsapi.jenkins import Jenkins
 
 # Jenkins connection information
-jenkins_url = 'http://jenkins.company.com' 
+jenkins_url = 'http://jenkins.company.com'
 username = 'user@email.com'
-api_key = 'my_token' 
+api_key = 'my_token'
 job_name = 'Test_Tower_Integration'
 
 num_platforms = 8
@@ -43,24 +44,22 @@ num_ansible_versions = 3
 
 result_count = 0
 results = dict()
-table_padding = 23 
-
-def ansible_version_weight(version):
-    '''Hack to set order of columns'''
-    weight = {'devel': 0, 'stable-2.1': 1, 'stable-1.9': 2}
-    return weight[version]
-
-def platform_weight(platform):
-    '''Hack to set order of platforms'''
-    weight = {'rhel-6.7-x86_64': 0,        'rhel-7.2-x86_64': 1,
-              'centos-6.latest-x86_64': 2, 'centos-7.latest-x86_64': 3,
-              'ubuntu-12.04-x86_64': 4,    'ubuntu-14.04-x86_64': 5,
-              'ol-6.7-x86_64': 6,          'ol-7.2-x86_64': 7}
-    return weight[platform]
+table_padding = 23
 
 
-def add_result(job_description):
+def job_run_from_today(job_run):
+    '''Returns True if job_run happened today'''
+    eastern_tz = timezone("US/Eastern")
+    job_time = job_run.get_timestamp().astimezone(eastern_tz)
+    now = datetime.now(eastern_tz)
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    return job_time > start_of_day
+
+
+def add_result(job_run):
     '''Use description to add results for a given configuration. Returns True if new result was added.'''
+    job_description = job_run.get_description()
     if not job_description:
         return False
 
@@ -85,9 +84,29 @@ def add_result(job_description):
     else:
         # Result for this platform has already been added
         return False
-    results[platform][ansible_version] = description
+
+    if job_run_from_today(job_run):
+        results[platform][ansible_version] = description
+    else:
+        results[platform][ansible_version] = "<outdated>"
 
     return True
+
+
+def ansible_version_weight(version):
+    '''Hack to set order of columns'''
+    weight = {'devel': 0, 'stable-2.1': 1, 'stable-1.9': 2}
+    return weight[version]
+
+
+def platform_weight(platform):
+    '''Hack to set order of platforms'''
+    weight = {'rhel-6.7-x86_64': 0,        'rhel-7.2-x86_64': 1,
+              'centos-6.latest-x86_64': 2, 'centos-7.latest-x86_64': 3,
+              'ubuntu-12.04-x86_64': 4,    'ubuntu-14.04-x86_64': 5,
+              'ol-6.7-x86_64': 6,          'ol-7.2-x86_64': 7}
+    return weight[platform]
+
 
 def print_results(results):
     '''Print results for all configurations'''
@@ -97,7 +116,7 @@ def print_results(results):
     header = "".ljust(table_padding)
     for version in ansible_versions:
         header += version.ljust(table_padding)
-    print header 
+    print header
 
     # For each platform
     for platform in platforms:
@@ -110,7 +129,7 @@ def print_results(results):
 
         print line
 
-# Collect information from Jenkins 
+# Collect information from Jenkins
 jenkins = Jenkins(baseurl=jenkins_url, username=username, password=api_key)
 job = jenkins[job_name]
 builds = job.get_build_dict()
@@ -121,22 +140,24 @@ num_runs = 0
 for build_id in build_ids:
     if finished:
         break
-    #print "Build ", build_id
+    # print "Build ", build_id
     build = job.get_build(build_id)
     runs = build.get_matrix_runs()
     index = 0
     for run in runs:
         num_runs += 1
-        desc = run.get_description()
-        #print "%s: %s" % (index, desc)
-        new_result = add_result(desc)
+        # desc = run.get_description()
+        # print "%s: %s" % (index, desc)
+        new_result = add_result(run)
         if new_result:
-            #print result_count
+            # print result_count
             sys.stdout.write('.')
-            sys.stdout.flush()
             result_count += 1
-            if result_count >= num_platforms * num_ansible_versions: 
-               finished = True 
+            if result_count >= num_platforms * num_ansible_versions:
+               finished = True
+        else:
+            sys.stdout.write(' ')
+        sys.stdout.flush()
         index += 1
 
     # Max number of job runs to consider (twice size of matrix)
