@@ -61,6 +61,8 @@ def platform_weight(platform):
 
 def add_result(job_description):
     '''Use description to add results for a given configuration. Returns True if new result was added.'''
+    if not job_description:
+        return False
 
     # Parse description
     res = re.search("(.*) / (.*) \((.*)\)", job_description)
