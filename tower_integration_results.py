@@ -4,7 +4,7 @@
 Uses jenkinsapi to query jenkins results for matrix configuration job.
 
 Usage:
-    python jenkins_matrix_results.py
+    python tower_integration_results.py
 
 Update jenkins_url, username, and api_key below.
 - Username is your E-mail address (listed on user page)
