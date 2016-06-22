@@ -28,7 +28,7 @@ Known limitations:
 
 import sys
 import re
-from datetime import datetime
+from datetime import (datetime, timedelta)
 from pytz import timezone
 
 from jenkinsapi.jenkins import Jenkins
@@ -47,14 +47,19 @@ results = dict()
 table_padding = 23
 
 
-def job_run_from_today(job_run):
-    '''Returns True if job_run happened today'''
+def job_run_from_last_night(job_run):
+    '''
+    Returns True if job_run was triggered sometime after last night. 
+    (Last night is fixed at 10pm)
+    '''
     eastern_tz = timezone("US/Eastern")
     job_time = job_run.get_timestamp().astimezone(eastern_tz)
     now = datetime.now(eastern_tz)
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    two_hours = timedelta(hours=2)
+    last_night = start_of_day - two_hours
 
-    return job_time > start_of_day
+    return job_time > last_night
 
 
 def add_result(job_run):
@@ -85,7 +90,7 @@ def add_result(job_run):
         # Result for this platform has already been added
         return False
 
-    if job_run_from_today(job_run):
+    if job_run_from_last_night(job_run):
         results[platform][ansible_version] = description
     else:
         results[platform][ansible_version] = "<outdated>"
