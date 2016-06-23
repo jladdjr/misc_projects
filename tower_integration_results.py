@@ -50,13 +50,13 @@ table_padding = 23
 def job_run_from_last_night(job_run):
     '''
     Returns True if job_run was triggered sometime after last night. 
-    (Last night is fixed at 10pm)
+    (Last night is fixed at 8pm)
     '''
     eastern_tz = timezone("US/Eastern")
     job_time = job_run.get_timestamp().astimezone(eastern_tz)
     now = datetime.now(eastern_tz)
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    two_hours = timedelta(hours=2)
+    two_hours = timedelta(hours=4)
     last_night = start_of_day - two_hours
 
     return job_time > last_night
