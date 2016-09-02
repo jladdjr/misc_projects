@@ -1,0 +1,9 @@
+---
+- hosts: all
+  tasks:
+  - docker_container:
+      name: irc-container
+      image: jladdjr/ansible-container-inspircd-irc
+      state: started
+      command: '/usr/local/src/inspircd/run/inspircd start --nofork'
+      ports: '6667:6667'
